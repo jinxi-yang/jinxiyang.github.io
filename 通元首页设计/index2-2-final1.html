@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通元 - 全链路智能体赋能平台</title>
+    <!-- 引入 FontAwesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* --- 核心配色：深海科技风 --- */
+            --bg-color: #060e18; /* 深邃午夜蓝 */
+            --card-bg: rgba(13, 30, 55, 0.7); /* 深蓝半透明卡片 */
+            --card-border: rgba(30, 100, 180, 0.4); /* 亮蓝边框 */
+            
+            --text-main: #ffffff;
+            --text-secondary: #8ba3b8; /* 蓝灰色文本 */
+            
+            --primary-gradient: linear-gradient(135deg, #0b2545 0%, #133a6b 100%);
+            --accent-gradient: linear-gradient(135deg, #0091ff 0%, #00d2ff 100%); /* 电光蓝 -> 青色 */
+            --button-gradient: linear-gradient(90deg, #0080f0, #00a0f0); /* 按钮高亮色 */
+            
+            --hover-glow: 0 0 20px rgba(0, 145, 255, 0.3);
+            --nav-height: 70px;
+        }
+
+        html { scroll-behavior: smooth; }
+        section { scroll-margin-top: 70px; }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+
+        body {
+            background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(0, 145, 255, 0.1) 0%, transparent 50%),
+                linear-gradient(to top, #040912 0%, transparent 100%);
+            padding-top: var(--nav-height);
+        }
+
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+
+        /* ==================== 1. 导航栏样式 ==================== */
+        .navbar {
+            position: fixed; top: 0; left: 0; width: 100%; height: var(--nav-height);
+            background: rgba(6, 14, 24, 0.9); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border); z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        .nav-container { width: 100%; max-width: 1400px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; height: 100%; }
+        .nav-logo { font-size: 1.5rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .nav-logo i { color: #fff; }
+        .nav-links { display: flex; gap: 40px; height: 100%; }
+        .nav-item { height: 100%; display: flex; align-items: center; position: relative; cursor: pointer; font-size: 0.95rem; color: var(--text-secondary); transition: 0.3s; }
+        .nav-item:hover, .nav-item.active { color: #fff; text-shadow: 0 0 10px rgba(0,145,255,0.5); }
+        .nav-item::after { content: ''; position: absolute; bottom: 0; left: 0; width: 0; height: 3px; background: var(--button-gradient); transition: width 0.3s ease; box-shadow: 0 -2px 10px rgba(0,145,255,0.8); }
+        .nav-item:hover::after, .nav-item.active::after { width: 100%; }
+        
+        .nav-actions { display: flex; gap: 15px; align-items: center; }
+        .btn-login { padding: 8px 20px; border: 1px solid var(--card-border); border-radius: 4px; font-size: 0.9rem; color: #fff; transition: 0.3s; background: rgba(0,0,0,0.2); }
+        .btn-login:hover { border-color: #0091ff; background: rgba(0, 145, 255, 0.1); color: #0091ff; }
+
+        .user-profile { position: relative; display: none; align-items: center; gap: 10px; cursor: pointer; padding: 5px 10px; transition: 0.3s; }
+        .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: #fff; border: 2px solid #0091ff; overflow: hidden; }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .user-name { color: #fff; font-size: 0.95rem; max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-dropdown { position: absolute; top: 50px; right: 0; width: 160px; background: rgba(8, 18, 32, 0.98); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transform: translateY(10px); transition: all 0.3s ease; }
+        .user-profile:hover .user-dropdown { opacity: 1; visibility: visible; transform: translateY(0); }
+        .user-dropdown-item { padding: 10px 20px; color: var(--text-secondary); display: flex; align-items: center; gap: 10px; transition: 0.2s; font-size: 0.9rem; }
+        .user-dropdown-item:hover { background: rgba(0, 145, 255, 0.1); color: #fff; }
+
+        /* Mega Menu */
+        .mega-menu { position: absolute; top: var(--nav-height); left: 50%; transform: translateX(-50%) translateY(20px); width: 100vw; background: rgba(8, 18, 32, 0.98); backdrop-filter: blur(20px); border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); padding: 40px 0; opacity: 0; visibility: hidden; transition: all 0.3s ease; box-shadow: 0 20px 40px rgba(0,0,0,0.6); cursor: default; }
+        .nav-item:hover .mega-menu { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+        .mega-menu-inner { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 30px; }
+        .mm-category h4 { color: #fff; font-size: 1rem; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid rgba(30, 100, 180, 0.3); font-weight: 600; }
+        .mm-category ul li { margin-bottom: 12px; }
+        .mm-category ul li a { color: var(--text-secondary); font-size: 0.9rem; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .mm-category ul li a:hover { color: #00d2ff; transform: translateX(5px); }
+        .mm-arrow { opacity: 0; font-size: 0.8rem; transition: 0.2s; }
+        .mm-category ul li a:hover .mm-arrow { opacity: 1; }
+
+        /* ==================== 3. 核心流程图 (Hero Section) ==================== */
+        .hero-section {
+            padding: 140px 0 100px; 
+            position: relative;
+            background: 
+                linear-gradient(rgba(0, 145, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 145, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            overflow: hidden;
+        }
+
+        .container { max-width: 1450px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 2; }
+        .hero-glow { position: absolute; top: -200px; left: 50%; transform: translateX(-50%); width: 800px; height: 600px; background: radial-gradient(circle, rgba(0, 145, 255, 0.15) 0%, transparent 70%); filter: blur(80px); pointer-events: none; z-index: 0; }
+
+        .section-title { text-align: center; font-size: 2.5rem; margin-bottom: 70px; font-weight: 700; color: #fff; text-shadow: 0 0 20px rgba(0, 145, 255, 0.4); padding-top: 0; letter-spacing: 2px;}
+        .section-title::after { content: ''; display: block; width: 80px; height: 4px; background: var(--button-gradient); margin: 15px auto 0; border-radius: 2px; box-shadow: 0 0 10px rgba(0, 145, 255, 0.8); }
+
+        /* 流程容器 */
+        .pipeline-container {
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            justify-content: center;
+            gap: 25px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 通用卡片样式 */
+        .pipeline-stage {
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 25px;
+            display: flex; flex-direction: column; align-items: center;
+            position: relative; backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            text-decoration: none !important; cursor: pointer;
+        }
+
+        /* 类型A：侧边辅助模块 (Side Stage) */
+        .pipeline-stage.side-stage {
+            flex: 0.8;
+            min-width: 200px;
+            min-height: 380px;
+            background: rgba(13, 30, 55, 0.4);
+            border-style: dashed;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .side-stage .stage-header { font-size: 1rem; color: #8ba3b8; border-bottom-color: rgba(255,255,255,0.1); }
+
+        /* 类型B：核心能力卡片 (Core Stage) - 放大强调 */
+        .pipeline-stage.core-stage {
+            flex: 1.2; /* 宽度更大 */
+            min-width: 280px;
+            min-height: 440px; /* 高度更高 */
+            background: rgba(13, 30, 55, 0.85); /* 背景更实 */
+            border: 1px solid rgba(0, 145, 255, 0.5); /* 边框更亮 */
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+            transform: scale(1.02); /* 微微放大 */
+        }
+        .core-stage:hover {
+            border-color: #0091ff; transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 20px 50px rgba(0, 145, 255, 0.25);
+            background: rgba(13, 30, 55, 0.95);
+        }
+        .core-stage .stage-header { font-size: 1.2rem; color: #fff; padding-bottom: 15px; margin-bottom: 20px; border-bottom: 1px solid rgba(0, 145, 255, 0.3); }
+
+        /* 模块标题 */
+        .stage-header {
+            font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; padding-bottom: 10px; width: 100%; border-bottom: 1px solid transparent;
+        }
+        .stage-body { display: flex; flex-direction: column; gap: 15px; width: 100%; flex: 1; justify-content: center; }
+
+        /* 内部节点 */
+        .sub-node {
+            background: rgba(0, 145, 255, 0.08); border: 1px solid rgba(0, 145, 255, 0.15);
+            border-radius: 8px; padding: 12px; text-align: center; font-size: 0.9rem;
+            color: #dbeafe; transition: 0.3s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .pipeline-stage:hover .sub-node { background: rgba(0, 145, 255, 0.15); border-color: rgba(0, 145, 255, 0.4); }
+        .sub-node strong { font-weight: 600; color: #fff; }
+        .sub-node small { font-size: 0.75rem; opacity: 0.7; margin-top: 3px; }
+
+        /* 连接箭头 */
+        .pipeline-stage:not(:last-child)::after {
+            content: ''; position: absolute; right: -30px; top: 50%;
+            width: 30px; height: 2px;
+            background: linear-gradient(90deg, transparent, #0091ff, transparent);
+            z-index: 0; animation: flowLine 2s infinite linear;
+        }
+        .pipeline-stage:not(:last-child)::before {
+            content: "\f054"; font-family: "Font Awesome 6 Free"; font-weight: 900;
+            position: absolute; right: -20px; top: 50%; transform: translateY(-50%);
+            color: #0091ff; font-size: 12px; text-shadow: 0 0 5px #0091ff; z-index: 2;
+        }
+        @keyframes flowLine { 0% { opacity: 0.2; background-position: -15px 0; } 50% { opacity: 1; } 100% { opacity: 0.2; background-position: 15px 0; } }
+
+        /* --- 内部布局微调 --- */
+        .df-col { display: flex; flex-direction: column; gap: 10px; height: 100%; }
+        .model-layout { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+        .model-top-row { display: flex; gap: 10px; flex: 1; }
+        .agent-layout { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+
+        /* 左侧：文件格式网格 */
+        .source-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+        .file-item { 
+            display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05);
+            padding: 8px; border-radius: 6px; font-size: 0.85rem; color: #ccc;
+        }
+        
+        /* 右侧：场景赋能网格 */
+        .scenario-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+        .scenario-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; padding: 12px 5px; transition: 0.3s;
+        }
+        .scenario-item:hover { background: rgba(0, 230, 118, 0.1); border-color: #00e676; transform: translateY(-3px); }
+        .scenario-icon { font-size: 1.2rem; color: #00e676; margin-bottom: 5px; }
+        .scenario-text { font-size: 0.85rem; color: #fff; }
+
+        /* 特殊节点颜色 */
+        .node-green { border-left: 3px solid #00e676; }
+        .node-purple { border-left: 3px solid #a855f7; }
+        .node-blue { border-left: 3px solid #00d2ff; }
+
+        /* ==================== 5. 详情板块 ==================== */
+        .feature-section { padding: 40px 0; }
+        .feature-container { display: flex; align-items: center; gap: 60px; margin-bottom: 100px; }
+        .feature-container.reverse { flex-direction: row-reverse; }
+        .feature-img-box { flex: 1; position: relative; }
+        
+        .mock-illustration { width: 100%; height: 400px; background: rgba(13, 30, 55, 0.4); border-radius: 8px; border: 1px solid var(--card-border); display: flex; justify-content: center; align-items: center; box-shadow: inset 0 0 30px rgba(0,0,0,0.5); }
+        .feature-icon-big { font-size: 8rem; color: rgba(255,255,255,0.05); }
+        .feature-content { flex: 1.2; }
+
+        .mock-illustration img.custom-img {
+            width: 100%; height: 100%; object-fit: cover; border-radius: 8px; opacity: 0.8; mix-blend-mode: overlay;
+        }
+
+        .grid-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .grid-item { padding: 20px 0; }
+        .grid-icon { font-size: 2.5rem; margin-bottom: 15px; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .grid-item h4 { font-size: 1.1rem; margin-bottom: 10px; color: #fff; }
+        .grid-item p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px; }
+        .feature-btn { padding: 8px 20px; background: transparent; border: 1px solid var(--card-border); color: var(--text-secondary); border-radius: 2px; font-size: 0.85rem; transition: 0.3s; }
+        .feature-btn:hover { border-color: #0091ff; color: #0091ff; box-shadow: 0 0 10px rgba(0,145,255,0.2); }
+
+        /* ==================== 6. 行业应用 ==================== */
+        .industry-section { padding-bottom: 100px; text-align: center; }
+        .industry-grid { display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; max-width: 1000px; margin: 0 auto; }
+        .industry-card { background: rgba(13, 30, 55, 0.8); border: 1px solid var(--card-border); padding: 15px 30px; border-radius: 4px; display: flex; align-items: center; gap: 10px; min-width: 160px; justify-content: center; transition: 0.3s; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; overflow: hidden; }
+        .industry-card::before { content: ''; position: absolute; left: 0; bottom: 0; width: 100%; height: 2px; background: var(--button-gradient); transform: scaleX(0); transition: transform 0.3s ease; }
+        .industry-card:hover { background: rgba(18, 40, 70, 0.9); border-color: #0091ff; transform: translateY(-5px); box-shadow: 0 5px 20px rgba(0, 145, 255, 0.2); }
+        .industry-card:hover::before { transform: scaleX(1); }
+        .industry-card i { color: #00d2ff; }
+
+        /* ==================== 7. Footer ==================== */
+        footer { background-color: #04080e; padding: 80px 0 40px; border-top: 1px solid var(--card-border); font-size: 0.9rem; color: var(--text-secondary); }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr; gap: 40px; margin-bottom: 60px; }
+        .footer-logo h2 { color: #fff; margin-bottom: 20px; font-size: 1.8rem; }
+        .footer-col h4 { color: #fff; margin-bottom: 20px; font-size: 1.1rem; }
+        .footer-col ul li { margin-bottom: 12px; }
+        .footer-col ul li a:hover { color: #00d2ff; }
+        .qr-img { width: 80px; height: 80px; background: #fff; margin-bottom: 5px; padding: 5px; border-radius: 4px; }
+        .copyright { text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; color: #555; }
+
+        /* ==================== 8. 登录弹窗 ==================== */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(4, 9, 20, 0.8); backdrop-filter: blur(8px); z-index: 2000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .modal-overlay.show { opacity: 1; visibility: visible; }
+        .modal-box { width: 400px; background: rgba(13, 30, 55, 0.95); border: 1px solid var(--card-border); border-top: 2px solid #0091ff; border-radius: 12px; padding: 40px 30px; position: relative; transform: translateY(30px); transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); }
+        .modal-overlay.show .modal-box { transform: translateY(0); }
+        .modal-close { position: absolute; top: 15px; right: 20px; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer; }
+        .modal-close:hover { color: #fff; }
+        .modal-title { text-align: center; font-size: 1.5rem; color: #fff; margin-bottom: 30px; font-weight: 600; }
+        .form-group { margin-bottom: 20px; position: relative; }
+        .form-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #0091ff; }
+        .form-input { width: 100%; padding: 12px 15px 12px 40px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--card-border); border-radius: 4px; color: #fff; font-size: 0.95rem; outline: none; transition: 0.3s; }
+        .form-input:focus { border-color: #0091ff; box-shadow: 0 0 10px rgba(0, 145, 255, 0.2); background: rgba(0, 0, 0, 0.5); }
+        .btn-submit { width: 100%; padding: 12px; background: var(--button-gradient); border: none; border-radius: 4px; color: #fff; font-size: 1rem; cursor: pointer; transition: 0.3s; margin-top: 10px; font-weight: 600; }
+        .btn-submit:hover { box-shadow: 0 0 20px rgba(0, 145, 255, 0.4); transform: translateY(-1px); }
+        .modal-footer { margin-top: 20px; display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-secondary); }
+        .modal-footer a { color: #0091ff; }
+        
+
+        /* ==================== 响应式适配 ==================== */
+        @media (max-width: 1300px) {
+            .pipeline-container { flex-direction: column; align-items: center; }
+            .pipeline-stage { width: 100%; max-width: 600px; margin-bottom: 20px; min-height: auto !important; }
+            .core-stage { transform: none !important; }
+            
+            /* 竖屏模式下的箭头改为向下 */
+            .pipeline-stage:not(:last-child)::after {
+                width: 2px; height: 20px; left: 50%; top: 100%; right: auto; 
+                background: linear-gradient(180deg, transparent, #0091ff, transparent); transform: translateX(-50%);
+            }
+            .pipeline-stage:not(:last-child)::before {
+                content: "\f078"; left: 50%; top: auto; bottom: -18px; right: auto; transform: translateX(-50%);
+            }
+        }
+        @media (max-width: 992px) {
+            .feature-container, .feature-container.reverse { flex-direction: column; text-align: center; }
+            .mega-menu-inner { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .nav-links { display: none; }
+            .footer-grid { grid-template-columns: 1fr; text-align: center; }
+            .qr-codes { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 导航栏 -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <i class="fa-solid fa-globe"></i>
+                <span>Tong</span>Yuan
+            </a>
+            <nav>
+                <ul class="nav-links">
+                    <li class="nav-item active">首页</li>
+                    <li class="nav-item">
+                        工具台 <i class="fa-solid fa-angle-down" style="font-size:0.7em; margin-left:5px;"></i>
+                        <div class="mega-menu">
+                            <div class="mega-menu-inner">
+                                <div class="mm-category">
+                                    <h4>数据处理</h4>
+                                    <ul>
+                                        <li><a href="#">数据采集 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                        <li><a href="#">数据清洗 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                        <li><a href="#">数据蒸馏 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                    </ul>
+                                </div>
+                                <div class="mm-category">
+                                    <h4>数据市场</h4>
+                                    <ul>
+                                        <li><a href="#">公共数据集 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                        <li><a href="#">自有数据集 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                        <li><a href="#">数据集评测 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                    </ul>
+                                </div>
+                                <div class="mm-category">
+                                    <h4>小模型训推</h4>
+                                    <ul>
+                                        <li><a href="#">数据标注 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                        <li><a href="#">TongModel <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                    </ul>
+                                </div>
+                                <div class="mm-category">
+                                    <h4>大模型训推</h4>
+                                    <ul>
+                                        <li><a href="#">大模型知识预处理 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                        <li><a href="#">大模型工厂 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                    </ul>
+                                </div>
+                                <div class="mm-category">
+                                    <h4>模型管理</h4>
+                                    <ul>
+                                        <li><a href="#">模型管理 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                        <li><a href="#">推理服务 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                    </ul>
+                                </div>
+                                <div class="mm-category">
+                                    <h4>智能体空间</h4>
+                                    <ul>
+                                        <li><a href="#">知识库 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                        <li><a href="#">大模型智能体平台 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                        <li><a href="#">MCP服务 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                        <li><a href="#">自主规划智能体 <i class="fa-solid fa-arrow-right mm-arrow"></i></a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li href="#industry" class="nav-item">产品文档</li>
+                    <li href="#industry" class="nav-item">关于我们</li>
+                </ul>
+            </nav>
+            <div class="nav-actions">
+                <a href="javascript:void(0);" class="btn-login" id="loginBtn" onclick="openLogin()">
+                    <i class="fa-regular fa-user" style="margin-right:5px;"></i>登录
+                </a>
+                <div class="user-profile" id="userProfile">
+                    <div class="user-avatar">
+                        <img src="https://ui-avatars.com/api/?name=Admin&background=0091ff&color=fff" alt="User">
+                    </div>
+                    <span class="user-name">Admin</span>
+                    <i class="fa-solid fa-caret-down" style="color:var(--text-secondary); font-size:0.8rem;"></i>
+                    <div class="user-dropdown">
+                        <div style="height:1px; background:rgba(255,255,255,0.1); margin:5px 0;"></div>
+                        <a href="javascript:void(0);" class="user-dropdown-item" onclick="logout()" style="color:#ff4d4f;">
+                            <i class="fa-solid fa-power-off"></i> 退出登录
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- [新版] 顶部大模型全链路流程图 -->
+    <section class="hero-section">
+        <div class="hero-glow"></div> 
+        <div class="container">
+            <h2 class="section-title">通元 · 全链路AI中台</h2>
+
+            <div class="pipeline-container">
+                
+                <!-- [左侧] 多源接入 (Side Stage) -->
+                <div class="pipeline-stage side-stage">
+                    <div class="stage-header">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> 多源数据接入
+                    </div>
+                    <div class="stage-body">
+                        <!-- 文件格式图标化 -->
+                        <div class="source-grid">
+                            <div class="file-item"><i class="fa-regular fa-file-word" style="color:#2b579a;"></i> Word</div>
+                            <div class="file-item"><i class="fa-regular fa-file-pdf" style="color:#d32f2f;"></i> PDF</div>
+                            <div class="file-item"><i class="fa-regular fa-file-excel" style="color:#217346;"></i> Excel</div>
+                            <div class="file-item"><i class="fa-brands fa-markdown" style="color:#fff;"></i> MD</div>
+                        </div>
+                        
+                        <div style="height:1px; background:rgba(255,255,255,0.1); width:100%; margin:5px 0;"></div>
+
+                        <div class="sub-node">
+                            <strong><i class="fa-solid fa-database"></i> 结构化数据</strong>
+                        </div>
+                        <div class="sub-node">
+                            <strong><i class="fa-solid fa-globe"></i> 公网情报</strong>
+                        </div>
+                        <div class="sub-node">
+                            <strong><i class="fa-solid fa-video"></i> 音视频流</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [核心] 知识中心 (Core Stage) -->
+                <a href="#section-data" class="pipeline-stage core-stage">
+                    <div class="stage-header">
+                        <i class="fa-solid fa-database" style="color:#0091ff;"></i> 知识中心
+                    </div>
+                    <div class="stage-body df-col">
+                                                <div class="model-top-row">
+                            <div class="sub-node node-blue" style="flex:1;">
+                            <strong>知识采集</strong>
+                            <small>大模型+爬取</small>
+                            </div>
+                            <div class="sub-node node-blue" style="flex:1;">
+                            <strong>知识接入</strong>
+                                        <small>热插拔接入</small>
+                            </div>
+                        </div>
+                            <div class="sub-node node-blue" style="flex:1;">
+                            <strong>知识预处理</strong>
+                            <small>ETL/脱敏/增强/结构化</small>
+                        </div>
+                                                    <div class="sub-node node-blue" style="flex:1;">
+                            <strong>智能标注</strong>
+                            <small>文本 / 图像 / 语音 / 视频</small>
+                        </div>
+                        <div class="sub-node" style="margin-top:auto; height:60px; background:linear-gradient(90deg, rgba(0,145,255,0.2), rgba(0,145,255,0.05)); border:1px solid #0091ff;">
+                            <strong style="font-size:1rem; color:#fff;">知识集市场</strong>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- [核心] 模型工坊 (Core Stage) -->
+                <a href="#section-train" class="pipeline-stage core-stage">
+                    <div class="stage-header">
+                        <i class="fa-solid fa-microchip" style="color:#a855f7;"></i> 模型工坊
+                    </div>
+                    <div class="stage-body model-layout">
+                        <div class="model-top-row">
+                            <div class="sub-node node-purple" style="flex:1;">
+                                <strong>模型微调</strong>
+                            </div>
+                            <div class="sub-node node-purple" style="flex:1;">
+                                <strong>模型蒸馏</strong>
+                            </div>
+                        </div>
+                        <div class="sub-node node-purple" >
+                            <strong>模型测评</strong>
+                            <small>BLEU/ROUGE</small>
+                        </div>
+                        <div class="sub-node node-purple" style="margin-top:auto; height:60px; border-left:3px solid #a855f7;">
+                            <strong style="font-size:1rem; color:#fff;">行业模型仓库</strong>
+                            <small> 部署 / 监控 / 推理</small>
+
+                        </div>
+                    </div>
+                </a>
+
+                <!-- [核心] 智能体空间 (Core Stage) -->
+                <a href="#section-agent" class="pipeline-stage core-stage">
+                    <div class="stage-header">
+                        <i class="fa-solid fa-robot" style="color:#00e676;"></i> 智能体空间
+                    </div>
+                    <div class="stage-body agent-layout">
+                        <div class="sub-node node-green">
+                            <strong>知识库</strong>
+                            <small>图知识库/向量知识库</small>
+                        </div>
+                        <div class="sub-node node-green" style="flex:1;">
+                            <strong>智能体系统开发</strong>
+                            <small>工作流 / 插件 / 记忆</small>
+                        </div>
+                        <div class="sub-node node-green" style="flex:1;">
+                            <strong>行业智能体中心</strong>
+                                    <small>行业模板/前沿工具</small>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- [右侧] 全场景赋能 (Side Stage) -->
+                <div class="pipeline-stage side-stage">
+                    <div class="stage-header">
+                        <i class="fa-solid fa-border-all"></i> 全场景赋能
+                    </div>
+                    <div class="stage-body">
+                        <div class="scenario-grid">
+                            <div class="scenario-item">
+                                <i class="fa-solid fa-building-columns scenario-icon"></i>
+                                <span class="scenario-text">智慧政务</span>
+                            </div>
+                            <div class="scenario-item">
+                                <i class="fa-solid fa-industry scenario-icon"></i>
+                                <span class="scenario-text">智慧园区</span>
+                            </div>
+                            <div class="scenario-item">
+                                <i class="fa-solid fa-coins scenario-icon"></i>
+                                <span class="scenario-text">科研服务</span>
+                            </div>
+                            <div class="scenario-item">
+                                <i class="fa-solid fa-hospital-user scenario-icon"></i>
+                                <span class="scenario-text">智慧医疗</span>
+                            </div>
+                            <div class="scenario-item">
+                                <i class="fa-solid fa-graduation-cap scenario-icon"></i>
+                                <span class="scenario-text">智慧教育</span>
+                            </div>
+                            <div class="scenario-item">
+                                <i class="fa-solid fa-bolt scenario-icon"></i>
+                                <span class="scenario-text">智慧能源</span>
+                            </div>
+                            <div class="scenario-item">
+                                <i class="fa-solid fa-city scenario-icon"></i>
+                                <span class="scenario-text">城市治理</span>
+                            </div>
+                            <div class="scenario-item">
+                                <i class="fa-solid fa-traffic-light scenario-icon"></i>
+                                <span class="scenario-text">智慧交通</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 1. 智能体空间板块 -->
+    <section id="section-agent" class="feature-section">
+        <div class="container">
+            <h2 class="section-title">智能体空间</h2>
+            <div class="feature-container">
+                <div class="feature-img-box">
+                    <div class="mock-illustration"><img src="./image1.png" alt="智能体空间展示" class="custom-img"></div>
+                </div>
+                <div class="feature-content">
+                    <div class="grid-features">
+                        <div class="grid-item">
+                            <div class="grid-icon"><i class="fa-solid fa-book"></i></div>
+                            <h4>智能体系统开发</h4>
+                            <p>支持工作流、Agent等高定制化智能体能力，提供私域模型及公网模型接入，支持数据库接入、插件接入、低代码编程，保障智能体交付效率和质量。</p>
+                            <a href="#" class="feature-btn">智能体空间</a>
+                        </div>
+                        <div class="grid-item">
+                            <div class="grid-icon"><i class="fa-solid fa-layer-group"></i></div>
+                            <h4>知识库</h4>
+                            <p>智能体知识库，包含向量型知识库与图知识库，支持 RAG 检索和召回评测，为智能体应用提供可靠稳定私域数据源支持。</p>
+                            <a href="#" class="feature-btn">知识库</a>
+                        </div>
+                        <div class="grid-item">
+                            <div class="grid-icon"><i class="fa-solid fa-cubes"></i></div>
+                            <h4>行业智能体中心</h4>
+                            <p>结合智能体创新应用的专属行业高质量智能体样板间，沉淀专家工作流及方法论。为各个行业常见的智能体交付提供模板样例。</p>
+                            <a href="#" class="feature-btn">行业智能体中心</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. 模型训练板块 -->
+    <section id="section-train" class="feature-section" style="background: rgba(10, 25, 45, 0.5);">
+        <div class="container">
+            <h2 class="section-title">模型工坊</h2>
+            <div class="feature-container reverse">
+                <div class="feature-img-box">
+                    <div class="mock-illustration"><img src="./image2.png" alt="模型工坊展示" class="custom-img"></div>
+                </div>
+                <div class="feature-content">
+                    <div class="grid-features">
+                        <div class="grid-item">
+                            <div class="grid-icon"><i class="fa-solid fa-box-open"></i></div>
+                            <h4>模型微调</h4>
+                            <p>提供模型微调脚手架，支撑SFT、ReFT、RLHF、等训练方式，提供模型蒸馏能力，一站式解决模型微调工程难点。</p>
+                            <a href="#" class="feature-btn">模型微调</a>
+                        </div>
+                        <div class="grid-item">
+                            <div class="grid-icon"><i class="fa-solid fa-atom"></i></div>
+                            <h4>模型训推工程</h4>
+                            <p>提供镜像、算法、团队及任务管理，保障模型训练和推理过程稳定、可控，保障模型训推质量。</p>
+                            <a href="#" class="feature-btn">模型训推工程</a>
+                        </div>
+                        <div class="grid-item">
+                            <div class="grid-icon"><i class="fa-solid fa-cubes-stacked"></i></div>
+                            <h4>行业模型仓库</h4>
+                            <p>行业模型统一管理，提供版本控制、推理服务与监控，便捷灵活地存储行业模型能力并提供服务。</p>
+                            <a href="#" class="feature-btn">行业模型仓库</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. 知识中心板块 -->
+    <section id="section-data" class="feature-section">
+        <div class="container">
+            <h2 class="section-title">知识中心</h2>
+            <div class="feature-container">
+                <div class="feature-img-box">
+                    <div class="mock-illustration"><img src="./image3.png" alt="知识中心展示" class="custom-img"></div>
+                </div>
+                <div class="feature-content">
+                    <div class="grid-features">
+                        <div class="grid-item">
+                            <div class="grid-icon"><i class="fa-solid fa-magnet"></i></div>
+                            <h4>情报抓取</h4>
+                            <p>数据规范化爬取工具，支持多源、AI提质的文件+附件混合爬取，数据治理后用于模型训练。</p>
+                            <a href="#" class="feature-btn">情报抓取</a>
+                        </div>
+                        <div class="grid-item">
+                            <div class="grid-icon"><i class="fa-solid fa-filter"></i></div>
+                            <h4>知识预处理</h4>
+                            <p>支撑模型微调、蒸馏等数据预处理，把控模型落地数据质量关。</p>
+                            <a href="#" class="feature-btn">知识预处理</a>
+                        </div>
+                        <div class="grid-item">
+                            <div class="grid-icon"><i class="fa-solid fa-tags"></i></div>
+                            <h4>智能标注</h4>
+                            <p>支持多模态数据标注（文本、语音、图像、视频），生成高质量训练数据集，支撑监督训练。</p>
+                            <a href="#" class="feature-btn">智能标注</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 行业应用 -->
+    <section id= "industry" class="industry-section">
+        <div class="container">
+            <h2 class="section-title">行业应用</h2>
+            <div class="industry-grid">
+                <div class="industry-card"><i class="fa-solid fa-city"></i> 智慧政务</div>
+                <div class="industry-card"><i class="fa-solid fa-water"></i> 智慧能源</div>
+                <div class="industry-card"><i class="fa-solid fa-shield-halved"></i> 城市治理</div>
+                <div class="industry-card"><i class="fa-solid fa-water"></i> 智慧交通</div>
+                                <div class="industry-card"><i class="fa-solid fa-traffic-light"></i> 智慧园区</div>
+                <div class="industry-card"><i class="fa-solid fa-hospital-user"></i> 科研服务</div>
+                <div class="industry-card"><i class="fa-solid fa-building-columns"></i>智慧医疗</div>
+                <div class="industry-card"><i class="fa-solid fa-shield-halved"></i> 智慧教育</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-logo">
+                    <h2><span>Tong</span>Yuan</h2>
+                    <p>联系我们</p>
+                    <p>北京市海淀区尚东数字谷A栋4楼</p>
+                    <p>客服电话: 400-090-9889</p>
+                    <p>联系邮箱: Business@zkj.com</p>
+                </div>
+                <div class="footer-col">
+                    <h4>新闻资讯</h4>
+                    <ul>
+                        <li><a href="#">产品动态</a></li>
+                        <li><a href="#">公司介绍</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>产品</h4>
+                    <ul>
+                        <li><a href="#">卧龙智能体平台</a></li>
+                        <li><a href="#">模型工坊</a></li>
+                        <li><a href="#">知识集市场</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>解决方案</h4>
+                    <ul>
+                        <li><a href="#">政务服务</a> <a href="#">智慧交通</a></li>
+                        <li><a href="#">智慧园区</a> <a href="#">城市安全</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col qr-codes">
+                    <div class="qr-box">
+                        <div class="qr-img"><img src="https://via.placeholder.com/80" alt="公众号"></div>
+                        <small>公众号</small>
+                    </div>
+                    <div class="qr-box">
+                        <div class="qr-img"><img src="https://via.placeholder.com/80" alt="视频号"></div>
+                        <small>视频号</small>
+                    </div>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>京ICP备xxxxxxx号-9 Copyright © 2024 北京软通智慧科技有限公司</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 登录弹窗 HTML -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-box">
+            <div class="modal-close" onclick="closeLogin()"><i class="fa-solid fa-xmark"></i></div>
+            <h3 class="modal-title">账号登录</h3>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" class="form-input" placeholder="请输入账号/手机号" required>
+                </div>
+                <div class="form-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" class="form-input" placeholder="请输入密码" required>
+                </div>
+                <button type="submit" class="btn-submit">登 录</button>
+                <div class="modal-footer">
+                    <span>还没有账号？<a href="#">立即注册</a></span>
+                    <a href="#">忘记密码？</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JS 逻辑 -->
+    <script>
+        function openLogin() {
+            document.getElementById('loginModal').classList.add('show');
+        }
+        function closeLogin() {
+            document.getElementById('loginModal').classList.remove('show');
+        }
+        document.getElementById('loginModal').addEventListener('click', function(e) {
+            if (e.target === this) closeLogin();
+        });
+        function handleLogin(event) {
+            event.preventDefault();
+            closeLogin();
+            document.getElementById('loginBtn').style.display = 'none';
+            document.getElementById('userProfile').style.display = 'flex';
+        }
+        function logout() {
+            document.getElementById('userProfile').style.display = 'none';
+            document.getElementById('loginBtn').style.display = 'inline-block';
+        }
+    </script>
+
+</body>
+</html>
