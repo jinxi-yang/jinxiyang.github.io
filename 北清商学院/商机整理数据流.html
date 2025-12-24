@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户数据多源整合与AI分析流程图</title>
+    <!-- 使用一个稳定的 CDN 版本 -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: 40px;
+            max-width: 1200px;
+            width: 95%;
+            text-align: center;
+        }
+        h1 { color: #2c3e50; margin-bottom: 10px; }
+        p.subtitle { color: #7f8c8d; font-size: 14px; margin-bottom: 30px; }
+        .mermaid { overflow-x: auto; display: flex; justify-content: center; }
+        .footer { margin-top: 30px; font-size: 12px; color: #999; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>全渠道客户数据整合与 AI 赋能分析流程</h1>
+    <p class="subtitle">方案架构：数据采集(ETL) -> 统一清洗 -> 本地私有化 AI 知识库</p>
+
+    <div class="mermaid">
+    %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e1f5fe', 'edgeLabelBackground':'#ffffff', 'tertiaryColor': '#f1f8e9'}}}%%
+    flowchart TD
+        %% 样式定义
+        classDef source fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+        classDef tool fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
+        classDef process fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+        classDef ai fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+        classDef result fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+
+        %% 第一层：数据源
+        subgraph Sources ["数据源层 (Source)"]
+            direction TB
+            S1("个人微信")
+            S2("企业微信")
+            S3("邮件往来")
+            S4("CRM/Excel")
+        end
+
+        %% 第二层：采集
+        subgraph Extraction ["数据采集与导出 (Extract)"]
+            direction TB
+            T1["工具: WeChatMsg/留痕<br>(导出CSV/JSON)"]
+            T2["工具: RPA抓取/后台<br>(导出Txt/Excel)"]
+            T3["工具: MailStore<br>(导出EML/TXT)"]
+            T4["操作: 另存为<br>(标准CSV)"]
+        end
+
+        %% 连线关系
+        S1 --> T1
+        S2 --> T2
+        S3 --> T3
+        S4 --> T4
+
+        %% 第三层：清洗
+        subgraph Transformation ["数据清洗与标准化 (Transform)"]
+            direction TB
+            P1{"数据清洗中心<br>(Excel PowerQuery)"}
+            P2["字段对齐与合并"]
+            P3["生成标准档案文件"]
+            P4[("客户统一知识库<br>(Markdown/JSONL)")]
+        end
+
+        %% 连线关系
+        T1 & T2 & T3 & T4 --> P1
+        P1 --> P2
+        P2 -- "去重/脱敏" --> P3
+        P3 --> P4
+
+        %% 第四层：AI分析
+        subgraph AI_Engine ["AI 智能分析层 (RAG)"]
+            direction TB
+            A1["本地AI平台<br>(AnythingLLM/Dify)"]
+            A2["AI推理引擎"]
+        end
+
+        %% 连线关系
+        P4 -->|Embedding向量化| A1
+        A1 --> A2
+
+        %% 第五层：输出
+        subgraph Output ["业务价值输出 (Value)"]
+            direction TB
+            R1["精准客户画像"]
+            R2["历史沟通摘要"]
+            R3["销售策略建议"]
+        end
+
+        %% 连线关系
+        A2 --> R1
+        A2 --> R2
+        A2 --> R3
+
+        %% 应用样式
+        class S1,S2,S3,S4 source
+        class T1,T2,T3,T4 tool
+        class P1,P2,P3,P4 process
+        class A1,A2 ai
+        class R1,R2,R3 result
+    </div>
+
+    <div class="footer">
+        Generated for Internal Report | 2025
+    </div>
+</div>
+
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        flowchart: {
+            useMaxWidth: true,
+            htmlLabels: true,
+            curve: 'basis'
+        }
+    });
+</script>
+
+</body>
+</html>

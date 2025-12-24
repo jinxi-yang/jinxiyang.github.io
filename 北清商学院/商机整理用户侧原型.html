@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 客户洞察工作台 - 原型演示</title>
+    <style>
+        :root {
+            --primary-color: #2563eb; /* 专业蓝 */
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-sub: #6b7280;
+            --border-color: #e5e7eb;
+            --success: #10b981;
+            --tag-bg: #eff6ff;
+            --tag-text: #1d4ed8;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 模拟浏览器窗口/应用容器 */
+        .app-container {
+            width: 1000px;
+            height: 700px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        /* 顶部客户信息栏 */
+        .header {
+            padding: 20px 30px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+        }
+
+        .customer-info h2 { margin: 0; font-size: 20px; }
+        .customer-info p { margin: 5px 0 0; color: var(--text-sub); font-size: 14px; }
+        
+        .ai-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-sub);
+            background: #f9fafb;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+        }
+        .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; }
+
+        /* 导航 Tab */
+        .tabs {
+            display: flex;
+            padding: 0 30px;
+            border-bottom: 1px solid var(--border-color);
+            background: #fafafa;
+        }
+
+        .tab-btn {
+            padding: 15px 20px;
+            cursor: pointer;
+            color: var(--text-sub);
+            font-weight: 500;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover { color: var(--primary-color); }
+        
+        .tab-btn.active {
+            color: var(--primary-color);
+            background: #fff;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        /* 内容区域 */
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background: #fff;
+        }
+
+        .page { display: none; animation: fadeIn 0.3s ease; }
+        .page.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 通用卡片样式 */
+        .card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 页面 1：客户画像 */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .tag-cloud { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag {
+            background: var(--tag-bg);
+            color: var(--tag-text);
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .info-row { display: flex; margin-bottom: 12px; font-size: 14px; }
+        .label { color: var(--text-sub); width: 80px; }
+        .value { font-weight: 500; }
+
+        /* 页面 2：沟通摘要 */
+        .timeline { position: relative; padding-left: 20px; border-left: 2px solid #e5e7eb; }
+        .timeline-item { position: relative; margin-bottom: 25px; padding-left: 20px; }
+        .timeline-item::before {
+            content: ''; position: absolute; left: -27px; top: 0;
+            width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid var(--primary-color);
+        }
+        .time-meta { font-size: 12px; color: var(--text-sub); margin-bottom: 5px; display: flex; gap: 10px; }
+        .source-badge {
+            padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold;
+        }
+        .source-wechat { background: #d1fae5; color: #065f46; } /* 微信绿 */
+        .source-email { background: #dbeafe; color: #1e40af; } /* 邮件蓝 */
+        .summary-text { font-size: 14px; line-height: 1.6; background: #f9fafb; padding: 12px; border-radius: 6px; }
+
+        /* 页面 3：课程推荐 */
+        .course-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .course-card:hover { border-color: var(--primary-color); background: #feffff; }
+        .course-main h3 { margin: 0 0 8px 0; font-size: 16px; color: var(--text-main); }
+        .course-reason { font-size: 13px; color: var(--text-sub); line-height: 1.5; }
+        .match-score {
+            text-align: center;
+            background: #eff6ff;
+            color: var(--primary-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            min-width: 60px;
+        }
+        .score-val { display: block; font-size: 20px; font-weight: bold; }
+        .score-label { font-size: 11px; }
+
+        /* 底部 */
+        .footer {
+            padding: 15px 30px;
+            background: #f9fafb;
+            border-top: 1px solid var(--border-color);
+            text-align: right;
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- 顶部信息 -->
+    <header class="header">
+        <div class="customer-info">
+            <h2>张伟 (Zhang Wei)</h2>
+            <p>ID: 88203 | 职位: 技术总监 | 公司: 某科技创新企业</p>
+        </div>
+        <div class="ai-status">
+            <div class="dot"></div>
+            AI 已分析数据源: 微信(304条), 邮件(12封), CRM(2份)
+        </div>
+    </header>
+
+    <!-- 导航切换 -->
+    <nav class="tabs">
+        <div class="tab-btn active" onclick="switchTab('profile', this)">1. 精准客户画像</div>
+        <div class="tab-btn" onclick="switchTab('summary', this)">2. 历史沟通摘要</div>
+        <div class="tab-btn" onclick="switchTab('recommendation', this)">3. AI 课程推荐策略</div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="content-area">
+        
+        <!-- 页面 1: 客户画像 -->
+        <div id="profile" class="page active">
+            <div class="profile-grid">
+                <div class="card">
+                    <div class="card-title">🔍 基础信息 & 标签</div>
+                    <div class="info-row"><span class="label">决策能力:</span><span class="value">强 (直接决策人)</span></div>
+                    <div class="info-row"><span class="label">当前预算:</span><span class="value">约 50w - 80w</span></div>
+                    <div class="info-row"><span class="label">性格分析:</span><span class="value">理性、关注数据、讨厌推销话术</span></div>
+                    <div style="margin-top:15px; font-size:12px; color:#999; margin-bottom:8px;">AI 提取标签:</div>
+                    <div class="tag-cloud">
+                        <span class="tag">技术背景</span>
+                        <span class="tag">急需数字化转型</span>
+                        <span class="tag">价格敏感度低</span>
+                        <span class="tag">关注售后支持</span>
+                        <span class="tag">周末不回消息</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">⚠️ 痛点与需求挖掘</div>
+                    <p style="font-size:14px; color:#4b5563; line-height:1.6;">
+                        <strong>核心痛点：</strong>目前的团队管理混乱，中层干部缺乏系统性的管理思维，导致项目经常延期。<br><br>
+                        <strong>显性需求：</strong>寻找一套能快速落地的技术管理课程，或者敏捷开发培训。<br><br>
+                        <strong>潜在机会：</strong>客户在邮件中提到过想了解“OKR 绩效管理”，可作为增值课程切入。
+                    </p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">📊 活跃度热力图</div>
+                <div style="height: 100px; background: #f9fafb; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 14px;">
+                    [此处展示客户沟通频率图表：显示该客户通常在周二、周四下午回复邮件最快]
+                </div>
+            </div>
+        </div>
+
+        <!-- 页面 2: 沟通摘要 -->
+        <div id="summary" class="page">
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="time-meta">
+                        <span>2024-12-20 14:30</span>
+                        <span class="source-badge source-wechat">来源: 微信</span>
+                    </div>
+                    <div class="summary-text">
+                        <strong>主要内容：</strong> 客户询问关于私有化部署的安全性问题。<br>
+                        <strong>AI 提炼：</strong> 客户表现出对数据泄露的担忧，建议后续沟通重点强调我们的 ISO27001 认证和本地化部署案例。
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="time-meta">
+                        <span>2024-12-15 09:12</span>
+                        <span class="source-badge source-email">来源: 邮件</span>
+                    </div>
+                    <div class="summary-text">
+                        <strong>主题：</strong> Re: 关于年度培训计划的初步报价<br>
+                        <strong>主要内容：</strong> 张总认为《基础管理课》太浅，不符合他们全是研究生学历的团队现状，要求更换为高阶课程，并询问是否包含“实战演练”环节。
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="time-meta">
+                        <span>2024-11-28 16:00</span>
+                        <span class="source-badge source-wechat">来源: 微信</span>
+                    </div>
+                    <div class="summary-text">
+                        <strong>主要内容：</strong> 首次建立联系，对方通过行业峰会扫码添加。对方提到目前公司正在从 20 人扩张到 100 人，管理出现断层。
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页面 3: 课程推荐 -->
+        <div id="recommendation" class="page">
+            <div style="margin-bottom: 20px; font-size: 14px; color: var(--text-sub);">
+                💡 AI 基于客户痛点（团队扩张、管理混乱）与背景（技术出身）生成的推荐组合：
+            </div>
+
+            <!-- 推荐课程 1 -->
+            <div class="course-card">
+                <div class="course-main">
+                    <h3>🏆 首选推荐：《技术管理者的高阶进阶课》</h3>
+                    <div class="course-reason">
+                        <strong>推荐理由：</strong> 针对张总提到的“中层干部缺乏系统思维”痛点。该课程专门针对技术转管理的场景，包含代码管理到人员管理的转型方法论。
+                        <br><span style="color:var(--primary-color); font-size:12px; margin-top:5px; display:block;">话术建议：强调“实战演练”占比超过 60%，直接回应他在邮件中的诉求。</span>
+                    </div>
+                </div>
+                <div class="match-score">
+                    <span class="score-val">98%</span>
+                    <span class="score-label">匹配度</span>
+                </div>
+            </div>
+
+            <!-- 推荐课程 2 -->
+            <div class="course-card">
+                <div class="course-main">
+                    <h3>🥈 备选方案：《敏捷开发与 OKR 落地实战》</h3>
+                    <div class="course-reason">
+                        <strong>推荐理由：</strong> 捕捉到客户潜在需求（OKR）。结合客户公司快速扩张（20人到100人）的背景，敏捷开发能解决其交付延期的问题。
+                    </div>
+                </div>
+                <div class="match-score">
+                    <span class="score-val">85%</span>
+                    <span class="score-label">匹配度</span>
+                </div>
+            </div>
+
+            <!-- 推荐课程 3 -->
+            <div class="course-card" style="opacity: 0.7;">
+                <div class="course-main">
+                    <h3>🥉 补充推荐：《商务演讲与汇报》</h3>
+                    <div class="course-reason">
+                        <strong>推荐理由：</strong> 历史数据显示，技术型团队通常在向上汇报时存在短板。可作为“打包赠送”的权益，提升成单率。
+                    </div>
+                </div>
+                <div class="match-score">
+                    <span class="score-val">70%</span>
+                    <span class="score-label">匹配度</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="footer">
+        Generated by Local AI Knowledge Base | Data updated: 2025-12-24
+    </footer>
+</div>
+
+<script>
+    function switchTab(tabId, element) {
+        // 1. 移除所有 Tab 的 active 状态
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // 2. 隐藏所有 Page
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // 3. 激活当前点击的 Tab 和对应的 Page
+        element.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+</script>
+
+</body>
+</html>
