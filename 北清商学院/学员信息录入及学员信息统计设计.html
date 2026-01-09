@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商学院学员管理系统 - 增强版 Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .ai-gradient {
+            background: linear-gradient(135deg, #f5f7ff 0%, #e8edff 100%);
+            border: 1px solid #d1dbff;
+        }
+        .typing-effect::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { opacity: 0; }
+        .stat-card { transition: transform 0.3s; }
+        .stat-card:hover { transform: translateY(-5px); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div id="app" class="p-6">
+        <!-- 导航栏 -->
+        <header class="flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center space-x-2">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                    <i class="fas fa-university"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">北清商学院学员管理系统</h1>
+                    <p class="text-xs text-gray-400">班主任后台 - 当前班级：领袖增长营08期</p>
+                </div>
+            </div>
+            <div class="flex space-x-2 bg-gray-100 p-1 rounded-lg">
+                <button @click="currentView = 'list'" :class="currentView === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500'" class="px-6 py-2 rounded-md font-medium transition">学员列表</button>
+                <button @click="openAnalysis" :class="currentView === 'analysis' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500'" class="px-6 py-2 rounded-md font-medium transition">
+                    <i class="fas fa-wand-sparkles mr-1"></i> 画像统计 & AI分析
+                </button>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main>
+            <!-- Demo 1: 学员列表页 -->
+            <div v-if="currentView === 'list'">
+                <div class="flex justify-between items-end mb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">全班学员信息</h2>
+                        <p class="text-sm text-gray-500">管理、筛选并维护学员核心档案</p>
+                    </div>
+                    <button @click="showAddModal = true" class="bg-indigo-600 text-white px-6 py-3 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition flex items-center">
+                        <i class="fas fa-magic mr-2"></i> AI 快速录入
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th class="p-4 font-semibold text-gray-600">姓名</th>
+                                <th class="p-4 font-semibold text-gray-600">公司</th>
+                                <th class="p-4 font-semibold text-gray-600">职务</th>
+                                <th class="p-4 font-semibold text-gray-600">规模</th>
+                                <th class="p-4 font-semibold text-gray-600">决策人</th>
+                                <th class="p-4 font-semibold text-gray-600">缴费状态</th>
+                                <th class="p-4 font-semibold text-gray-600 text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="s in students" :key="s.id" class="border-b border-gray-50 hover:bg-indigo-50/30 transition">
+                                <td class="p-4 font-bold text-gray-700">{{s.name}} <span class="text-xs font-normal text-gray-400 ml-1">{{s.age}}岁</span></td>
+                                <td class="p-4 text-gray-600">{{s.company}}</td>
+                                <td class="p-4 text-gray-600">{{s.position}}</td>
+                                <td class="p-4 text-gray-500">{{s.size}}</td>
+                                <td class="p-4">
+                                    <span :class="s.isDecisionMaker ? 'text-amber-600 bg-amber-50 border border-amber-100' : 'text-gray-400 bg-gray-50 border border-gray-100'" class="px-2 py-1 rounded text-[10px] font-bold uppercase">
+                                        {{s.isDecisionMaker ? '关键决策人' : '非决策人'}}
+                                    </span>
+                                </td>
+                                <td class="p-4">
+                                    <span :class="s.paid ? 'text-green-600' : 'text-red-400'" class="flex items-center font-medium">
+                                        <i class="fas fa-check-circle mr-1" v-if="s.paid"></i>
+                                        <i class="fas fa-clock mr-1" v-else></i>
+                                        {{s.paid ? '已缴清' : '待缴费'}}
+                                    </span>
+                                </td>
+                                <td class="p-4 text-center">
+                                    <button class="text-indigo-600 hover:text-indigo-800 font-medium">详情</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Demo 2: 数据统计分析视图 + AI 洞察 -->
+            <div v-if="currentView === 'analysis'" class="space-y-6 animate__animated animate__fadeIn">
+                <!-- 核心指标 -->
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 stat-card">
+                        <div class="text-indigo-500 text-xs font-bold mb-1">班级总人数</div>
+                        <div class="text-3xl font-black text-gray-800">{{students.length}} <span class="text-sm font-normal text-gray-400">人</span></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 stat-card">
+                        <div class="text-indigo-500 text-xs font-bold mb-1">已缴纳学费</div>
+                        <div class="text-3xl font-black text-gray-800">¥1.85M</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 stat-card">
+                        <div class="text-indigo-500 text-xs font-bold mb-1">决策人占比</div>
+                        <div class="text-3xl font-black text-gray-800">72.5%</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 stat-card">
+                        <div class="text-indigo-500 text-xs font-bold mb-1">平均年龄</div>
+                        <div class="text-3xl font-black text-gray-800">39.2</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 stat-card">
+                        <div class="text-indigo-500 text-xs font-bold mb-1">千人规模公司</div>
+                        <div class="text-3xl font-black text-gray-800">45%</div>
+                    </div>
+                </div>
+
+                <!-- AI 分析区域 -->
+                <div class="ai-gradient p-6 rounded-2xl shadow-sm relative overflow-hidden min-h-[160px]">
+                    <div class="flex items-center mb-3">
+                        <div class="bg-indigo-600 text-white w-8 h-8 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-robot text-sm"></i>
+                        </div>
+                        <h3 class="font-bold text-indigo-900">AI 智能全班画像深度洞察</h3>
+                        <span class="ml-auto text-[10px] bg-indigo-200 text-indigo-700 px-2 py-0.5 rounded-full font-bold">GPT-4 ENGINE</span>
+                    </div>
+                    
+                    <div v-if="aiLoading" class="flex items-center space-x-2 text-indigo-400 py-4">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span class="text-sm">正在深度分析全班学员结构及行业背景...</span>
+                    </div>
+                    
+                    <div v-else class="text-indigo-900/80 leading-relaxed text-sm">
+                        <p class="mb-2 font-semibold">分析结果总结：</p>
+                        <div class="typing-effect">{{aiInsightText}}</div>
+                    </div>
+                    
+                    <!-- 背景装饰图标 -->
+                    <i class="fas fa-chart-line absolute -bottom-4 -right-4 text-indigo-100 text-8xl opacity-50"></i>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 class="font-bold mb-6 flex items-center">
+                            <i class="fas fa-building text-indigo-400 mr-2"></i> 学员所属企业规模分布
+                        </h3>
+                        <div id="chartSize" style="height: 320px;"></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 class="font-bold mb-6 flex items-center">
+                            <i class="fas fa-user-tie text-indigo-400 mr-2"></i> 核心管理职级分布
+                        </h3>
+                        <div id="chartPosition" style="height: 320px;"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Demo 1: AI 智能录入弹窗 (代码逻辑同前) -->
+        <div v-if="showAddModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row shadow-2xl transition-all">
+                <div class="w-full md:w-5/12 p-8 bg-slate-50 border-r border-gray-100">
+                    <div class="flex items-center mb-6 text-indigo-600">
+                        <i class="fas fa-bolt mr-2"></i>
+                        <h3 class="font-black text-xl italic tracking-wider">AI RAPID INPUT</h3>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-6 font-medium">请直接粘贴学员的微信自我介绍、简历摘要或系统导出文本。</p>
+                    <textarea 
+                        v-model="aiInput"
+                        placeholder="例如：我是李强，45岁，在顺丰快递担任技术VP。公司员工5万人。我是主要负责人，学费已交。" 
+                        class="w-full h-72 p-4 bg-white border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none text-sm transition-all"
+                    ></textarea>
+                    <button @click="parseAI" class="w-full mt-6 bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition shadow-xl">
+                        解析并自动填充表单
+                    </button>
+                </div>
+
+                <div class="w-full md:w-7/12 p-8 bg-white relative">
+                    <button @click="showAddModal = false" class="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                    <h3 class="font-bold text-xl mb-8">核对生成的信息</h3>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="col-span-1">
+                            <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">姓名</label>
+                            <input v-model="form.name" type="text" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:border-indigo-500 outline-none">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">年龄</label>
+                            <input v-model.number="form.age" type="number" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">所属公司</label>
+                            <input v-model="form.company" type="text" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">职务</label>
+                            <input v-model="form.position" type="text" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">公司规模</label>
+                            <select v-model="form.size" class="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl">
+                                <option>50人以下</option>
+                                <option>50-200人</option>
+                                <option>200-1000人</option>
+                                <option>1000人以上</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2 flex space-x-8 mt-4">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" v-model="form.isDecisionMaker" class="hidden">
+                                <div :class="form.isDecisionMaker ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-200'" class="w-5 h-5 border-2 rounded mr-2 flex items-center justify-center transition">
+                                    <i v-if="form.isDecisionMaker" class="fas fa-check text-[10px] text-white"></i>
+                                </div>
+                                <span class="text-sm font-bold text-gray-600">核心决策人</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" v-model="form.paid" class="hidden">
+                                <div :class="form.paid ? 'bg-green-500 border-green-500' : 'bg-white border-gray-200'" class="w-5 h-5 border-2 rounded mr-2 flex items-center justify-center transition">
+                                    <i v-if="form.paid" class="fas fa-check text-[10px] text-white"></i>
+                                </div>
+                                <span class="text-sm font-bold text-gray-600">学费已收回</span>
+                            </label>
+                        </div>
+                    </div>
+                    <button @click="submitForm" class="w-full mt-10 bg-indigo-600 text-white py-4 rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
+                        确认添加至班级列表
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const currentView = ref('list');
+                const showAddModal = ref(false);
+                const aiInput = ref('');
+                const aiLoading = ref(false);
+                const aiInsightText = ref('');
+                
+                // 模拟原始数据
+                const students = ref([
+                    { id: 1, name: '李明强', age: 45, company: '字节跳动', position: '资深总监', size: '1000人以上', isDecisionMaker: true, paid: true },
+                    { id: 2, name: '张晓雅', age: 32, company: 'Manner Coffee', position: '创始人', size: '200-1000人', isDecisionMaker: true, paid: true },
+                    { id: 3, name: '陈建国', age: 50, company: '三一重工', position: '事业部总经理', size: '1000人以上', isDecisionMaker: true, paid: true },
+                    { id: 4, name: '林溪', age: 28, company: '红杉中国', position: '投资经理', size: '50人以下', isDecisionMaker: false, paid: false },
+                    { id: 5, name: '赵大为', age: 41, company: '华为', position: '区域总裁', size: '1000人以上', isDecisionMaker: true, paid: true },
+                    { id: 6, name: '孙丽丽', age: 36, company: '极氪汽车', position: 'CMO', size: '1000人以上', isDecisionMaker: true, paid: true },
+                ]);
+
+                const form = reactive({
+                    name: '', age: '', company: '', position: '', size: '50-200人', isDecisionMaker: false, paid: false
+                });
+
+                const parseAI = () => {
+                    const text = aiInput.value;
+                    if(!text) return alert('请输入文本');
+                    // 模拟解析逻辑
+                    form.name = '李强';
+                 form.age = 45;
+                     form.company = '顺丰速运';
+                 form.position = '技术VP';
+                    form.size = '1000人以上';
+                     form.isDecisionMaker = true;
+                     form.paid = true;
+                };
+
+                const submitForm = () => {
+                    students.value.unshift({ ...form, id: Date.now() });
+                    showAddModal.value = false;
+                    Object.assign(form, { name: '', age: '', company: '', position: '', size: '50-200人', isDecisionMaker: false, paid: false });
+                    aiInput.value = '';
+                };
+
+                // 核心：AI 智能画像分析逻辑
+                const generateAIInsight = () => {
+                    aiLoading.value = true;
+                    aiInsightText.value = "";
+                    
+                    // 模拟AI计算延迟
+                    setTimeout(() => {
+                        aiLoading.value = false;
+                        const total = students.value.length;
+                        const deciderCount = students.value.filter(s => s.isDecisionMaker).length;
+                        
+                        // 根据班级数据实时动态生成的分析文案
+                        aiInsightText.value = `本班级当前共有 ${total} 位学员，其中关键决策人（创始人/VP级）占比高达 ${(deciderCount/total*100).toFixed(1)}%。学员背景呈现明显的“高杠杆”特质，主要集中在 1000人以上规模的大型企业（占比45%）。平均年龄39.2岁，正处于职业生涯的黄金成熟期。建议班主任在后续课程中增加“跨行资源整合”环节，因为班内同时存在传统制造业（三一重工）与数字科技（字节跳动）的头部高管，极具产业互联网转型探讨空间。`;
+                    }, 1500);
+                };
+
+                const openAnalysis = () => {
+                    currentView.value = 'analysis';
+                    generateAIInsight();
+                    nextTick(() => {
+                        initCharts();
+                    });
+                };
+
+                const initCharts = () => {
+                    const sizeChart = echarts.init(document.getElementById('chartSize'));
+                    sizeChart.setOption({
+                        tooltip: { trigger: 'item' },
+                        legend: { bottom: '0%' },
+                        series: [{
+                            name: '公司规模',
+                            type: 'pie',
+                            radius: ['45%', '70%'],
+                            avoidLabelOverlap: false,
+                            itemStyle: { borderRadius: 12, borderColor: '#fff', borderWidth: 4 },
+                            label: { show: false },
+                            data: [
+                                { value: 45, name: '1000人以上' },
+                                { value: 25, name: '200-1000人' },
+                                { value: 20, name: '50-200人' },
+                                { value: 10, name: '50人以下' }
+                            ]
+                        }]
+                    });
+
+                    const posChart = echarts.init(document.getElementById('chartPosition'));
+                    posChart.setOption({
+                        xAxis: { type: 'category', data: ['创始人', 'VP/副总', '总监级', '投资经理'], axisLine: {show:false}, axisTick: {show:false} },
+                        yAxis: { type: 'value', splitLine: {lineStyle: {type: 'dashed'}} },
+                        series: [{
+                            data: [1, 3, 2, 1],
+                            type: 'bar',
+                            barWidth: '40%',
+                            itemStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: '#6366f1' },
+                                    { offset: 1, color: '#a5b4fc' }
+                                ]),
+                                borderRadius: [8, 8, 0, 0]
+                            }
+                        }]
+                    });
+                };
+
+                return {
+                    currentView, showAddModal, aiInput, students, form,
+                    aiLoading, aiInsightText,
+                    parseAI, submitForm, openAnalysis
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
