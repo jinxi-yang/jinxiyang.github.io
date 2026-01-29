@@ -1,0 +1,5 @@
+{
+  "name": "政策智脑核心平台",
+  "description": "一个综合性政策数据智能平台，展示数据采集（网络、工信部、本地）、AI智能体驱动处理（通元/Dify）及专家查询能力，并集成GenAI工具。",
+  "requestFramePermissions": []
+}
