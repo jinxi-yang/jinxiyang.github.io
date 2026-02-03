@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduSmart AI 3.0 - 全栈教务管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        body { font-family: 'Inter', 'Microsoft YaHei', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .glass-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 20px -5px rgba(0,0,0,0.05); }
+        .active-tab { border-bottom: 3px solid #2563eb; color: #2563eb; background: linear-gradient(to top, #eff6ff, transparent); }
+        
+        /* 冲突高亮 */
+        .conflict-red { border: 2px solid #ef4444 !important; background-color: #fef2f2; position: relative; }
+        .conflict-yellow { border: 2px solid #f59e0b !important; background-color: #fffbeb; position: relative; }
+        
+        /* 气泡提示 */
+        .tooltip { visibility: hidden; position: absolute; z-index: 100; bottom: 105%; left: 0; background: #1e293b; color: white; padding: 10px; border-radius: 8px; font-size: 11px; width: 220px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); line-height: 1.5; }
+        .has-tooltip:hover .tooltip { visibility: visible; }
+
+        .scroll-hide::-webkit-scrollbar { width: 4px; height: 4px; }
+        .scroll-hide::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        @keyframes pulse-blue { 0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); } 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); } }
+        .ai-generating { animation: pulse-blue 2s infinite; }
+        .map-bg { background-color: #eff6ff; background-image: radial-gradient(#bfdbfe 1px, transparent 1px); background-size: 20px 20px; }
+        @keyframes fadeInMsg { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-anim { animation: fadeInMsg 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- 1. 顶部导航栏 -->
+    <header class="h-16 bg-white border-b flex items-center justify-between px-8 z-50 shrink-0">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                <i data-lucide="cpu"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold leading-tight">EduSmart <span class="text-blue-600">Pro</span></h1>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Intelligent Teaching OS</p>
+            </div>
+        </div>
+        
+        <nav class="flex gap-2 h-full">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-6 flex items-center gap-2 active-tab font-semibold transition-all">
+                <i data-lucide="bar-chart-3" class="w-4 h-4"></i> 数智化看板
+            </button>
+            <button onclick="switchTab('scheduler')" id="tab-scheduler" class="px-6 flex items-center gap-2 text-slate-500 hover:text-blue-600 font-semibold transition-all">
+                <i data-lucide="calendar-range" class="w-4 h-4"></i> 智能课程编排
+            </button>
+        </nav>
+
+        <div class="flex items-center gap-4 bg-slate-50 p-1.5 rounded-2xl border">
+            <div class="flex items-center gap-2 px-3">
+                <i data-lucide="user-cog" class="w-4 h-4 text-slate-400"></i>
+                <select id="roleSelector" onchange="toggleRole()" class="bg-transparent border-none text-sm font-bold focus:ring-0 cursor-pointer">
+                    <option value="dean">学院管理者</option>
+                    <option value="teacher">班主任 (北京医疗3班)</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-hidden p-6 relative">
+        
+        <!-- ==========================================
+             视图一：多角色 AI 智能看板 (Dashboard)
+             ========================================== -->
+        <div id="view-dashboard" class="h-full grid grid-cols-12 gap-6">
+            <!-- 左侧核心可视化 -->
+            <div class="col-span-6 space-y-6 overflow-y-auto pr-2 scroll-hide">
+                <div class="glass-card p-6 h-80 relative overflow-hidden">
+                    <div class="flex justify-between items-center mb-4 relative z-10">
+                        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                            <i data-lucide="globe" class="w-4 h-4 text-blue-600"></i> 
+                            <span id="map-title">全院校友分布地图</span>
+                        </h3>
+                    </div>
+                    <div class="absolute inset-0 top-16 m-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 map-bg flex items-center justify-center overflow-hidden">
+                        <svg class="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 800 400">
+                            <path d="M150,100 Q200,50 300,100 T500,150 T700,100" fill="none" stroke="#2563eb" stroke-width="2" />
+                        </svg>
+                        <div class="relative flex flex-col items-center">
+                            <div class="flex -space-x-2">
+                                <div class="w-8 h-8 rounded-full bg-blue-600 border-2 border-white animate-pulse"></div>
+                                <div class="w-10 h-10 rounded-full bg-blue-400 border-2 border-white animate-bounce" style="animation-delay: 0.2s"></div>
+                                <div class="w-8 h-8 rounded-full bg-blue-300 border-2 border-white"></div>
+                            </div>
+                            <p class="text-xs font-bold text-blue-800 mt-4 bg-white/90 shadow-sm px-4 py-2 rounded-full border border-blue-100">数智下钻：高价值资源集中于华北、长三角经济圈</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="glass-card p-6">
+                        <h3 class="font-bold text-slate-700 text-sm mb-6">产业结构透视</h3>
+                        <div class="flex items-center gap-4">
+                            <div class="w-24 h-24 rounded-full border-[10px] border-blue-600 border-t-transparent animate-spin" style="animation-duration: 10s"></div>
+                            <ul class="text-xs space-y-2 flex-1">
+                                <li class="flex justify-between"><span>医疗健康</span><span class="font-bold">42%</span></li>
+                                <li class="flex justify-between"><span>人工智能</span><span class="font-bold">28%</span></li>
+                                <li class="flex justify-between text-slate-400"><span>其他产业</span><span>30%</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6">
+                        <h3 class="font-bold text-slate-700 text-sm mb-4">决策度 (KP) 分布</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-[10px] mb-1 font-bold text-slate-500"><span>C-Level 决策层占比</span><span>78%</span></div>
+                                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-blue-600 h-full w-[78%]"></div>
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 italic">AI 提示：该画像群体对“商业资源撮合”需求极高。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间异动预警墙 -->
+            <div class="col-span-3 glass-card flex flex-col overflow-hidden">
+                <div class="p-4 border-b bg-slate-50/50 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-700 flex items-center gap-2 text-sm">
+                        <i data-lucide="zap" class="w-4 h-4 text-orange-500"></i> 实时异动预警墙
+                    </h3>
+                </div>
+                <div id="alert-feed" class="flex-1 overflow-y-auto p-4 space-y-3">
+                    <!-- 动态注入预警条目 -->
+                </div>
+            </div>
+
+            <!-- 右侧 AI Agent 对话区 -->
+            <div class="col-span-3 flex flex-col gap-6">
+                <div class="glass-card flex-1 flex flex-col overflow-hidden border-blue-100 shadow-xl">
+                    <div class="p-4 border-b bg-blue-600 text-white flex justify-between items-center">
+                        <h3 class="font-bold text-sm flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4"></i> AI Agent 助手</h3>
+                    </div>
+                    <div id="chat-box" class="flex-1 p-4 overflow-y-auto space-y-4 scroll-hide text-[11px] leading-relaxed">
+                        <div class="bg-slate-100 rounded-2xl rounded-tl-none p-3 text-slate-600">
+                            您好，我是数智助理。您可以点击左侧<b>预警信息</b>查看详情，或直接输入需求（如“对接凡知医学资源”）。
+                        </div>
+                    </div>
+                    <div class="p-4 border-t">
+                        <div class="bg-slate-50 border rounded-xl p-2">
+                            <textarea id="ai-input" rows="2" class="w-full bg-transparent border-none text-xs focus:ring-0 resize-none" placeholder="输入需求或上传招标文件..."></textarea>
+                            <div class="flex justify-between items-center mt-1">
+                                <button class="p-1 text-slate-400 hover:text-blue-600"><i data-lucide="paperclip" class="w-4 h-4"></i></button>
+                                <button onclick="sendMsg()" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold text-[10px]">发送</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             视图二：智能课程编排工作台 (Scheduler)
+             ========================================== -->
+        <div id="view-scheduler" class="hidden h-full flex flex-col gap-6">
+            <!-- 顶部全局项目计划轴 -->
+            <div class="glass-card p-4 overflow-hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4"></i> Global Semester Plan (年度/学期计划轴)</h3>
+                    <button class="text-blue-600 text-xs font-bold">+ 新增项目计划</button>
+                </div>
+                <div class="flex gap-4 overflow-x-auto pb-2 scroll-hide">
+                    <div class="min-w-[240px] bg-white border-2 border-blue-500 rounded-xl p-3 cursor-pointer group relative shadow-md">
+                        <div class="flex justify-between text-[10px] font-bold text-blue-600 mb-2 uppercase">领袖增长营 8期</div>
+                        <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden mb-1"><div class="bg-blue-600 h-full w-3/4"></div></div>
+                        <p class="text-[9px] text-slate-400">起止：2026.03 - 2026.09</p>
+                        <!-- Hover 预览 -->
+                        <div class="hidden group-hover:block absolute top-full left-0 mt-2 w-full bg-slate-800 text-white text-[10px] p-3 rounded-xl z-50">
+                            关键模块：数字化转型、资本实务、组织变革
+                        </div>
+                    </div>
+                    <script>
+                        for(let i=1; i<=4; i++){
+                            document.write(`
+                                <div class="min-w-[240px] bg-slate-50 border border-slate-200 rounded-xl p-3 opacity-70 hover:opacity-100 transition-all cursor-pointer">
+                                    <div class="flex justify-between text-[10px] font-bold text-slate-500 mb-2">项目计划 ${i}</div>
+                                    <div class="h-1.5 w-full bg-slate-200 rounded-full"></div>
+                                </div>
+                            `);
+                        }
+                    </script>
+                </div>
+            </div>
+
+            <!-- 底部核心工作区 -->
+            <div class="flex-1 grid grid-cols-12 gap-6 overflow-hidden">
+                <!-- 左侧 Prompt Center -->
+                <div class="col-span-3 glass-card flex flex-col p-5 overflow-y-auto">
+                    <h3 class="font-bold text-slate-700 mb-6 flex items-center gap-2"><i data-lucide="terminal" class="w-4 h-4 text-blue-600"></i> Prompt Center</h3>
+                    <div class="space-y-6 flex-1">
+                        <section>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">系统硬约束 (System)</label>
+                            <div class="mt-2 space-y-2">
+                                <label class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border text-xs cursor-pointer">
+                                    <span>自动避开法定长节假日</span>
+                                    <input type="checkbox" checked class="rounded text-blue-600">
+                                </label>
+                                <label class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border text-xs cursor-pointer">
+                                    <span>班主任档期强校验</span>
+                                    <input type="checkbox" checked class="rounded text-blue-600">
+                                </label>
+                            </div>
+                        </section>
+                        <section class="flex-1 flex flex-col">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">定制提示词 (Custom)</label>
+                            <textarea id="prompt-input" class="w-full flex-1 mt-2 border rounded-xl p-3 text-xs focus:ring-2 focus:ring-blue-500 outline-none leading-relaxed" placeholder="例如：3月25日北京有大型医疗峰会，请避开该班级课程..."></textarea>
+                        </section>
+                        <button onclick="smartGenerate()" id="generateBtn" class="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 shadow-lg transition-all active:scale-95">
+                            <i data-lucide="wand-2" class="w-4 h-4"></i> 生成本周智能课表
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 右侧 Weekly Calendar Board -->
+                <div class="col-span-9 glass-card flex flex-col overflow-hidden">
+                    <div class="p-4 border-b flex justify-between items-center bg-slate-50/50">
+                        <div class="flex items-center gap-6">
+                            <div class="flex items-center gap-3">
+                                <h4 id="month-display" class="font-bold text-slate-800 text-lg">2026年3月</h4>
+                                <div class="flex bg-white border rounded-lg overflow-hidden shadow-sm">
+                                    <button onclick="changeMonth(-1)" class="px-2 py-1 hover:bg-slate-50 border-r"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                                    <button onclick="changeMonth(1)" class="px-2 py-1 hover:bg-slate-50"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                            <div id="week-badge" class="bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-bold">第 1 周</div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400"><span class="w-2.5 h-2.5 bg-red-500 rounded-full"></span> 班主任冲突</div>
+                            <div class="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400"><span class="w-2.5 h-2.5 bg-orange-500 rounded-full"></span> 学员档期冲突</div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 p-6 grid grid-cols-2 gap-6 overflow-y-auto scroll-hide bg-slate-50/30">
+                        <!-- 周六列 -->
+                        <div class="space-y-4">
+                            <div class="text-center font-bold text-slate-400 text-[10px] tracking-widest uppercase mb-4">Saturday / 星期六</div>
+                            <div id="sat-container" class="space-y-4">
+                                <div class="p-12 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-300 text-xs text-center">
+                                    <i data-lucide="calendar-plus" class="w-8 h-8 mb-2 opacity-20"></i>
+                                    点击左侧生成按钮<br>由 AI 自动填充 10+ 节课程数据
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 周日列 -->
+                        <div class="space-y-4">
+                            <div class="text-center font-bold text-slate-400 text-[10px] tracking-widest uppercase mb-4">Sunday / 星期日</div>
+                            <div id="sun-container" class="space-y-4">
+                                <div class="p-12 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-300 text-xs">
+                                    <i data-lucide="calendar-plus" class="w-8 h-8 mb-2 opacity-20"></i>
+                                    等待编排...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 排课底部操作栏 -->
+                    <div class="p-4 border-t bg-white flex justify-between items-center px-6">
+                        <div class="text-[10px] text-slate-400 font-medium italic">完成全月四周编排后可点击“发布”同步至学员端</div>
+                        <div class="flex gap-3">
+                            <button class="px-5 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all">保存草稿</button>
+                            <button id="nextWeekBtn" onclick="nextWeekStep()" class="px-5 py-2 rounded-xl text-xs font-bold border-2 border-blue-600 text-blue-600 hover:bg-blue-50 transition-all flex items-center gap-2">
+                                <span>下一周</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="finalSubmit()" class="px-6 py-2 rounded-xl text-xs font-bold bg-green-600 text-white shadow-lg shadow-green-100 hover:bg-green-700 transition-all active:scale-95">
+                                发布全月计划
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // ================= 核心状态 =================
+        let currentYear = 2026, currentMonth = 3, currentWeek = 1;
+        const ALERT_DB = {
+            'finance': { title: "财务欠款预警", content: "经 U8C 系统核对，领袖增长营8期共有 6 名学员尾款逾期 15 天以上，总金额 ¥45.2w。<b>AI建议：</b>排课时优先暂停其后期选修课的自动排班，直至结清。" },
+            'teacher_risk': { title: "师资异动风险", content: "王教授 3 月下旬由于出访学术会议，档期与 EMBA 班出现重叠概率 85%。已自动检索备份讲师：孙教授（行业背景匹配度 92%）。" },
+            'engagement': { title: "学员积极性预警", content: "医疗3班有 5 名关键学员近 14 天学习平台登录时长下降 60%。<b>画像分析：</b>多为二级医院院长，近期行业峰会较多。建议班主任针对性推送《峰会精华解读》。" },
+            'overdue': { title: "班级逾期提醒", content: "陈*亮、张*伟已逾期 3 天未完成阶段性学费支付。系统已自动发送第一轮提醒短信。" }
+        };
+
+        // ================= 导航与视图 =================
+        function switchTab(tab) {
+            document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden'));
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-tab', 'text-blue-600'));
+            const activeBtn = document.getElementById(`tab-${tab}`);
+            activeBtn.classList.add('active-tab', 'text-blue-600');
+            activeBtn.classList.remove('text-slate-500');
+            lucide.createIcons();
+        }
+
+        function toggleRole() {
+            const role = document.getElementById('roleSelector').value;
+            const alertFeed = document.getElementById('alert-feed');
+            const mapTitle = document.getElementById('map-title');
+
+            if (role === 'dean') {
+                mapTitle.innerText = '学院整体分布看板';
+                alertFeed.innerHTML = `
+                    <div onclick="showAlertDetail('finance')" class="p-3 bg-red-50 border-l-4 border-red-500 rounded-xl shadow-sm cursor-pointer hover:bg-red-100 transition-all group">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-red-700 text-xs">U8C 财务预警</span>
+                            <i data-lucide="chevron-right" class="w-3 h-3 text-red-300 group-hover:text-red-600 transition-colors"></i>
+                        </div>
+                        <p class="text-red-600 text-[10px]">累计欠款 ¥45.2w，集中于 8 期班。</p>
+                    </div>
+                    <div onclick="showAlertDetail('teacher_risk')" class="p-3 bg-orange-50 border-l-4 border-orange-500 rounded-xl shadow-sm cursor-pointer hover:bg-orange-100 transition-all group">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-orange-700 text-xs">师资异动预警</span>
+                            <i data-lucide="chevron-right" class="w-3 h-3 text-orange-300 group-hover:text-orange-600 transition-colors"></i>
+                        </div>
+                        <p class="text-orange-600 text-[10px]">3月下旬王教授档期高度冲突。</p>
+                    </div>`;
+            } else {
+                mapTitle.innerText = '北京医疗3班 - 学员画像分布';
+                alertFeed.innerHTML = `
+                    <div onclick="showAlertDetail('engagement')" class="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-xl shadow-sm cursor-pointer hover:bg-blue-100 transition-all group">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-blue-700 text-xs">积极性预警</span>
+                            <i data-lucide="chevron-right" class="w-3 h-3 text-blue-300 group-hover:text-blue-600 transition-colors"></i>
+                        </div>
+                        <p class="text-blue-600 text-[10px]">5名学员连续两周登录时长下降。</p>
+                    </div>
+                    <div onclick="showAlertDetail('overdue')" class="p-4 bg-orange-50 border-l-4 border-orange-500 rounded-xl shadow-sm cursor-pointer hover:bg-orange-100 transition-all group">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-orange-700 text-xs">班级逾期提醒</span>
+                            <i data-lucide="chevron-right" class="w-3 h-3 text-orange-300 group-hover:text-orange-600 transition-colors"></i>
+                        </div>
+                        <p class="text-orange-600 text-[10px]">本班陈*、张*尾款已逾期 3 天。</p>
+                    </div>`;
+            }
+            lucide.createIcons();
+        }
+        toggleRole();
+
+        // ================= AI 看板联动功能 =================
+        function showAlertDetail(type) {
+            const chatBox = document.getElementById('chat-box');
+            const data = ALERT_DB[type];
+            chatBox.innerHTML += `
+                <div class="bg-blue-600 text-white rounded-2xl rounded-tr-none p-3 self-end text-[10px] ml-8 mb-2 msg-anim">分析预警详情：${data.title}</div>
+            `;
+            setTimeout(() => {
+                chatBox.innerHTML += `
+                    <div class="bg-blue-50 border border-blue-100 rounded-2xl rounded-tl-none p-3 text-slate-700 mb-2 msg-anim shadow-sm">
+                        <div class="font-bold text-blue-600 mb-1 flex items-center gap-1"><i data-lucide="info" class="w-3 h-3"></i> AI 深度检索结果</div>
+                        <p class="text-[11px] leading-relaxed">${data.content}</p>
+                    </div>
+                `;
+                chatBox.scrollTop = chatBox.scrollHeight;
+                lucide.createIcons();
+            }, 500);
+        }
+
+        function sendMsg() {
+            const input = document.getElementById('ai-input');
+            const chat = document.getElementById('chat-box');
+            if(!input.value) return;
+            const val = input.value;
+            chat.innerHTML += `<div class="bg-blue-600 text-white rounded-2xl rounded-tr-none p-3 self-end mb-2 msg-anim">${val}</div>`;
+            input.value = '';
+            setTimeout(() => {
+                chat.innerHTML += `<div class="bg-slate-100 rounded-2xl rounded-tl-none p-3 text-slate-600 mb-2 msg-anim">已基于向量数据库完成检索。您可以查看对应的资源画像或招标文件拆解结果...</div>`;
+                chat.scrollTop = chat.scrollHeight;
+            }, 800);
+        }
+
+        // ================= 排课中心功能 =================
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+            if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+            currentWeek = 1;
+            updateSchedulerUI();
+        }
+
+        function nextWeekStep() {
+            if (currentWeek < 4) {
+                const btn = document.getElementById('nextWeekBtn');
+                btn.innerHTML = `<i data-lucide="loader" class="w-3 h-3 animate-spin"></i> 保存并进入下一周...`;
+                lucide.createIcons();
+                setTimeout(() => {
+                    currentWeek++;
+                    updateSchedulerUI();
+                    smartGenerate();
+                    btn.innerHTML = `<span>下一周</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>`;
+                    lucide.createIcons();
+                }, 600);
+            } else {
+                alert("已排完本月 4 周计划。请点击“发布全月计划”正式下发通知给 12 位班主任和全体学员。");
+            }
+        }
+
+        function updateSchedulerUI() {
+            document.getElementById('month-display').innerText = `${currentYear}年${currentMonth}月`;
+            document.getElementById('week-badge').innerText = `第 ${currentWeek} 周`;
+        }
+
+        function smartGenerate() {
+            const btn = document.getElementById('generateBtn');
+            btn.classList.add('ai-generating');
+            btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> 正在调用 AI 算力自动编排...`;
+            lucide.createIcons();
+
+            setTimeout(() => {
+                const satContainer = document.getElementById('sat-container');
+                const sunContainer = document.getElementById('sun-container');
+                satContainer.innerHTML = ''; sunContainer.innerHTML = '';
+
+                // 核心生成逻辑：10+节模拟课程数据
+                const mockCourses = [
+                    { day: 'sat', time: '09:00 - 12:00', title: `增长营 8期班 - W${currentWeek}`, desc: '《数字化转型底层的 12 个逻辑》', teacher: '王芳', status: 'normal', prog: '12/24' },
+                    { day: 'sat', time: '09:00 - 17:00', title: 'EMBA 高级研修班', desc: '《宏观经济与政策对冲策略分析》', teacher: '李教授', status: 'normal', prog: '04/12' },
+                    { day: 'sat', time: '13:30 - 16:30', title: '医疗器械专题班', desc: '《医疗出海路径与合规深度拆解》', teacher: '刘杰', status: 'conflict-red', prog: '08/16', reason: '班主任刘杰在该时段已在北京线下班带课。' },
+                    { day: 'sat', time: '14:00 - 17:00', title: '女性班研修课', desc: '《组织管理中的感性决策力量》', teacher: '张伟', status: 'normal', prog: '02/06' },
+                    { day: 'sat', time: '18:30 - 20:30', title: '私董会·夜谈', desc: '《企业存量竞争下的增长路径》', teacher: '赵雷', status: 'warning-yellow', prog: '专题', reason: '学员反馈周六晚间有商务聚会，建议改为直播。' },
+                    
+                    { day: 'sun', time: '09:00 - 12:00', title: 'M25135班', desc: '《财富配置与二级市场投资》', teacher: '陈静', status: 'normal', prog: '06/20' },
+                    { day: 'sun', time: '09:00 - 17:00', title: '数字化实战班', desc: '《华为管理法：奋斗者激励机制》', teacher: '特约讲师', status: 'normal', prog: '13/24' },
+                    { day: 'sun', time: '13:00 - 17:00', title: '北京医疗 3 班', desc: '《基因测序与前沿生物技术》', teacher: '孙博', status: 'conflict-red', prog: '01/01', reason: '校区 302 教室已在当日被外部行政会议占用。' },
+                    { day: 'sun', time: '14:00 - 17:30', title: '凡知医学定制课', desc: '《精准医疗下的设备采购实务》', teacher: '赵明', status: 'normal', prog: '03/08' },
+                    { day: 'sun', time: '15:00 - 18:00', title: '增长黑客营', desc: '《全链路运营闭环实战拆解》', teacher: '周莫', status: 'warning-yellow', prog: '10/12', reason: 'AI 检测到 3.25 同城有同行业峰会，预计缺席率超 30%。' }
+                ];
+
+                mockCourses.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = `glass-card p-4 transition-all hover:scale-[1.02] has-tooltip cursor-pointer border-t-4 ${
+                        item.status === 'conflict-red' ? 'border-t-red-500 bg-red-50/20' : 
+                        item.status === 'warning-yellow' ? 'border-t-orange-500 bg-orange-50/20' : 'border-t-blue-500'
+                    }`;
+
+                    let statusBadge = `<span class="text-blue-600 font-bold">进度 ${item.prog}</span>`;
+                    let tooltip = '';
+
+                    if(item.status === 'conflict-red') {
+                        statusBadge = `<span class="flex items-center gap-1 text-red-600 font-bold"><i data-lucide="alert-circle" class="w-3 h-3"></i> 档期冲突</span>`;
+                        tooltip = `<div class="tooltip"><strong>冲突详情：</strong><br>${item.reason}</div>`;
+                    } else if(item.status === 'warning-yellow') {
+                        statusBadge = `<span class="flex items-center gap-1 text-orange-600 font-bold"><i data-lucide="info" class="w-3 h-3"></i> AI 预警</span>`;
+                        tooltip = `<div class="tooltip"><strong>策略建议：</strong><br>${item.reason}</div>`;
+                    }
+
+                    card.innerHTML = `
+                        ${tooltip}
+                        <div class="flex justify-between text-[9px] font-bold text-slate-400 mb-2"><span>${item.time}</span>${statusBadge}</div>
+                        <h5 class="font-bold text-xs mb-1 text-slate-800 truncate">${item.title}</h5>
+                        <p class="text-[10px] text-slate-500 mb-3">${item.desc}</p>
+                        <div class="flex items-center justify-between pt-2 border-t">
+                            <div class="flex items-center gap-1.5"><div class="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-[8px] text-blue-600 font-bold">${item.teacher.charAt(0)}</div><span class="text-[10px] text-slate-500">班主任: ${item.teacher}</span></div>
+                            ${item.status !== 'normal' ? '<button class="text-[9px] bg-slate-800 text-white px-2 py-0.5 rounded">手动修正</button>' : ''}
+                        </div>`;
+                    if(item.day === 'sat') satContainer.appendChild(card); else sunContainer.appendChild(card);
+                });
+                
+                btn.classList.remove('ai-generating');
+                btn.innerHTML = `<i data-lucide="wand-2" class="w-4 h-4"></i> 重新生成智能课表`;
+                lucide.createIcons();
+            }, 1000);
+        }
+
+        function finalSubmit() {
+            if(confirm('确定发布全月排班计划吗？系统将自动下发通知至：12 位班主任')) {
+                alert('全月计划发布成功！教务流程已启动。');
+            }
+        }
+    </script>
+</body>
+</html>
